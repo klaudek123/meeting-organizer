@@ -1,2 +1,2 @@
 # Meeting-organizer
-Aplikacja mobilna 
+Aplikacja mobilna umożliwia użytkownikom planowanie i zarządzanie spotkaniami. Główne funkcje obejmują rejestrację użytkowników, dodawanie spotkań z podaniem tytułu, daty, godziny oraz lokalizacji na interaktywnej mapie, a także przeglądanie i edycję istniejących spotkań. Wykorzystuje ona architekturę Model-View-ViewModel (MVVM) z wykorzystaniem biblioteki Jetpack Compose do tworzenia interfejsu użytkownika oraz biblioteki Room do obsługi lokalnej bazy danych. Dodatkowo, aplikacja wykorzystuje funkcje kalendarza i mapy, umożliwiając precyzyjne planowanie spotkań.
