@@ -1,4 +1,4 @@
-package com.example.meeting_organizer.ui.main
+package com.example.meeting_organizer.ui.meetingScheduler
 
 import android.content.Context
 import com.google.android.libraries.places.api.model.Place

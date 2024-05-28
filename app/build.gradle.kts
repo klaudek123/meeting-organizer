@@ -59,6 +59,8 @@ dependencies {
     implementation ("com.google.android.libraries.places:places:2.5.0")
     val room_version = "2.6.1"
 
+
+    implementation ("com.google.dagger:hilt-android:2.38.1")
     implementation("androidx.room:room-runtime:$room_version")
     annotationProcessor("androidx.room:room-compiler:$room_version")
 

@@ -30,7 +30,10 @@ private val DarkColorScheme = darkColorScheme(
 )
 
 @Composable
-fun MeetingOrganizerTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
+fun MeetingOrganizerTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    content: @Composable () -> Unit
+) {
     val colors = if (darkTheme) {
         DarkColorScheme
     } else {

@@ -3,6 +3,7 @@ package com.example.meeting_organizer.data.model
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
+import androidx.room.Relation
 
 @Entity(tableName = "users")
 data class User(
@@ -11,5 +12,5 @@ data class User(
     @ColumnInfo(name = "last_name") val lastName: String,
     @ColumnInfo(name = "email") val email: String,
     @ColumnInfo(name = "phone_number") val phoneNumber: String,
-    @ColumnInfo(name = "password") val password: String
+    @ColumnInfo(name = "password") val password: String,
 )

@@ -2,29 +2,30 @@ package com.example.meeting_organizer.util
 
 import android.annotation.SuppressLint
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.fragment.app.FragmentManager
 import androidx.lifecycle.lifecycleScope
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import com.example.meeting_organizer.data.database.meeting.MeetingRepository
 import com.example.meeting_organizer.data.database.user.UserRepository
 import com.example.meeting_organizer.data.model.Meeting
+import com.example.meeting_organizer.data.model.MeetingUserCrossRef
 import com.example.meeting_organizer.data.model.User
 import com.example.meeting_organizer.ui.login.LoginScreen
-import com.example.meeting_organizer.ui.main.MainScreen
-import com.example.meeting_organizer.ui.main.MeetingListScreen
+import com.example.meeting_organizer.ui.meetingScheduler.MeetingSchedulerScreen
+import com.example.meeting_organizer.ui.meetingList.MeetingListScreen
 import com.example.meeting_organizer.ui.register.RegisterScreen
-import com.google.android.gms.maps.model.LatLng
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,11 +33,12 @@ import kotlinx.coroutines.withContext
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun NavigationController(
+    navController: NavHostController,
     userRepository: UserRepository,
     meetingRepository: MeetingRepository,
-    activity: ComponentActivity
+    activity: ComponentActivity,
+    isDarkTheme: MutableState<Boolean>
 ) {
-    val navController = rememberNavController()
 
     val registerUser: (String, String, String, String, String) -> Unit = { firstName, lastName, email, phoneNumber, password ->
         activity.lifecycleScope.launch {
@@ -56,9 +58,10 @@ fun NavigationController(
     val loginUser: (String, String) -> Unit = { email, password ->
         activity.lifecycleScope.launch {
             val user = userRepository.getUser(email, password)
-            if (user != null && user.email == email && user.password == password) {
+            if (user != null) {
+
                 withContext(Dispatchers.Main) {
-                    navController.navigate("meetings/${user.id} ")
+                    navController.navigate("meetings/${user.id}")
                 }
             } else {
                 // Obsługa błędnych danych logowania
@@ -67,17 +70,29 @@ fun NavigationController(
         }
     }
 
-    val scheduleMeeting: (Int, String, String, String) -> Unit = { userId, title, time, location ->
+    val goToScheduler: (Int) -> Unit = { userId ->
+        navController.navigate("scheduler/$userId")
+    }
+
+    val scheduleMeeting: (Int, String, String, String, List<User>) -> Unit = {ownerId, title, time, location, selectedUsers ->
         activity.lifecycleScope.launch {
-            meetingRepository.insertMeeting( Meeting(
+            // Utwórz nowe spotkanie
+            val meetingId = meetingRepository.insertMeeting(Meeting(
+                ownerId = ownerId,
                 title = title,
-                userId = userId,
                 startTime = time,
                 endTime = time,
-                address = location.toString() // You might want to get the real address here
-            )
-            )
-            navController.navigate("meetings/$userId")
+                address = location,
+                participants = selectedUsers
+            ))
+
+            // Dodaj uczestników do spotkania
+            selectedUsers.forEach { user ->
+                // Twórz wpisy do tabeli łączącej (wiele do wielu)
+                meetingRepository.insertMeetingUserCrossRef(MeetingUserCrossRef(meetingId.toInt(), user.id))
+            }
+
+            navController.navigate("meetings/$ownerId")
         }
     }
 
@@ -99,33 +114,50 @@ fun NavigationController(
                         activity = activity
                     )
                 }
-                composable("main/{userId}") { backStackEntry ->
-                    val userId = backStackEntry.arguments?.getString("userId")
-                    if (userId != null) {
-                        val userIdInt = userId.toInt()
-                        var user by remember { mutableStateOf<User?>(null) }
+                composable("scheduler/{userId}") { backStackEntry ->
+                    val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
+                    var user by remember { mutableStateOf<User?>(null) }
 
-                        LaunchedEffect(userIdInt) {
-                            user = userRepository.getUserById(userIdInt)
-                        }
-
-                        user?.let {
-                            MainScreen(
-                                it,
-                                onScheduleMeeting = scheduleMeeting,
-                                activity = activity
-                            )
-                        } ?: run {
-                            // Obsługa braku użytkownika w bazie danych
-                        }
+                    LaunchedEffect(userId) {
+                        user = userRepository.getUserById(userId)
                     }
 
+                    user?.let {
+                        MeetingSchedulerScreen(
+                            it,
+                            onScheduleMeeting = scheduleMeeting,
+                            userRepository = userRepository,
+                            navController = navController,
+                            isDarkTheme = isDarkTheme
+                        )
+                    } ?: run {
+                        // Obsługa braku użytkownika w bazie danych
+                    }
                 }
 
                 composable("meetings/{userId}") {
                     backStackEntry ->
                     val userId = backStackEntry.arguments?.getString("userId")?.toIntOrNull() ?: 0
-                    MeetingListScreen(userId = userId, meetingRepository = meetingRepository)
+
+                    var user by remember { mutableStateOf<User?>(null) }
+
+                    LaunchedEffect(userId) {
+                        user = userRepository.getUserById(userId)
+                    }
+                    user?.let {
+                        SessionManager.userId = it.id
+                        SessionManager.isLoggedIn = true
+                        MeetingListScreen(
+                            it,
+                            onButtonClick = goToScheduler,
+                            meetingRepository = meetingRepository,
+                            navController = navController,
+                            isDarkTheme = isDarkTheme
+                        )
+                    } ?: run {
+                        // Obsługa braku użytkownika w bazie danych
+                    }
+
                 }
             }
         }
