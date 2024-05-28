@@ -12,7 +12,11 @@ class MeetingRepository(private val meetingDao: MeetingDao) {
         return meetingDao.getMeetingById(id)
     }
 
-//    suspend fun getAllMeetings(): List<Meeting> {
-//        return meetingDao.getAllMeetings()
-//    }
+    suspend fun getAllMeetings(): List<Meeting> {
+        return meetingDao.getAllMeetings()
+    }
+
+    suspend fun getMeetingsForUser(userId: Int): List<Meeting> {
+        return meetingDao.getMeetingsForUser(userId)
+    }
 }

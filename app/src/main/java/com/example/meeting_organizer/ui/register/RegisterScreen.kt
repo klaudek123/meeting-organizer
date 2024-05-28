@@ -1,5 +1,6 @@
 package com.example.meeting_organizer.ui.register
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -22,6 +23,7 @@ import androidx.compose.ui.unit.sp
 @Composable
 fun RegisterScreen(
     onRegisterClick: (firstName: String, lastName: String, email: String, phoneNumber: String, password: String) -> Unit,
+    activity: ComponentActivity,
     modifier: Modifier = Modifier
 ) {
     var firstName by remember { mutableStateOf("") }

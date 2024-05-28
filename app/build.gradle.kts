@@ -56,6 +56,7 @@ dependencies {
     implementation(libs.osmdroid.wms)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.play.services.maps)
+    implementation ("com.google.android.libraries.places:places:2.5.0")
     val room_version = "2.6.1"
 
     implementation("androidx.room:room-runtime:$room_version")
@@ -63,7 +64,7 @@ dependencies {
 
     // To use Kotlin annotation processing tool (kapt)
     kapt("androidx.room:room-compiler:$room_version")
-
+    implementation("androidx.core:core-ktx:1.13.1")
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)

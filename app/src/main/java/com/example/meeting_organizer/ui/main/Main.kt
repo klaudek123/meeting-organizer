@@ -1,10 +1,12 @@
+
 package com.example.meeting_organizer.ui.main
 
 import android.app.TimePickerDialog
+import android.content.ContentValues.TAG
 import android.content.Context
-import android.location.Address
 import android.location.Geocoder
-import android.view.MotionEvent
+import android.util.Log
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,13 +18,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.DisposableEffectResult
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,45 +35,39 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
-import com.example.meeting_organizer.data.model.Meeting
+import androidx.fragment.app.FragmentActivity
 import com.example.meeting_organizer.data.model.User
+import com.google.android.gms.common.api.Status
+import com.google.android.gms.maps.CameraUpdateFactory
+import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.LatLng
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
-import org.osmdroid.config.Configuration
+import com.google.android.gms.maps.model.MarkerOptions
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.AutocompleteSupportFragment
+import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
 import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.Marker
-import org.osmdroid.views.overlay.Overlay
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.launch
 
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun MainScreen(user: User, onScheduleMeeting: (String, String, LatLng) -> Unit) {
+fun MainScreen(
+    user: User,
+    onScheduleMeeting: (Int, String, String, String) -> Unit,
+    activity: ComponentActivity
+) {
     var meetingTitle by remember { mutableStateOf("") }
     var meetingStartTime by remember { mutableStateOf("") }
     var meetingEndTime by remember { mutableStateOf("") }
-    var meetingLocation by remember { mutableStateOf<GeoPoint?>(null) }
-    var locationText by remember { mutableStateOf("") }
+    var meetingLocation by remember { mutableStateOf<LatLng?>(null) }
     var addressText by remember { mutableStateOf("") }
     val context = LocalContext.current
 
-    // Initialize osmdroid configuration
-    LaunchedEffect(Unit) {
-        Configuration.getInstance().load(
-            context,
-            androidx.preference.PreferenceManager.getDefaultSharedPreferences(context)
-        )
-    }
 
 
     val dateFormatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
@@ -88,29 +87,6 @@ fun MainScreen(user: User, onScheduleMeeting: (String, String, LatLng) -> Unit) 
                 onDateTimeSelected(dateFormatter.format(calendar.time))
             }, currentHour, currentMinute, true).show()
         }, currentYear, currentMonth, currentDay).show()
-    }
-
-    suspend fun getAddressFromGeoPoint(geoPoint: GeoPoint): String {
-        return withContext(Dispatchers.IO) {
-            val geocoder = Geocoder(context, Locale.getDefault())
-            val addresses: List<Address> =
-                geocoder.getFromLocation(geoPoint.latitude, geoPoint.longitude, 1)!!
-            if (addresses.isNotEmpty()) {
-                val address = addresses[0]
-                val addressFragments = with(address) {
-                    listOfNotNull(thoroughfare, subThoroughfare, locality)
-                }
-                addressFragments.joinToString(", ")
-            } else {
-                "Unknown location"
-            }
-        }
-    }
-
-    LaunchedEffect(meetingLocation) {
-        meetingLocation?.let {
-            addressText = getAddressFromGeoPoint(it)
-        }
     }
 
     Column(
@@ -177,24 +153,32 @@ fun MainScreen(user: User, onScheduleMeeting: (String, String, LatLng) -> Unit) 
             }
         }
         Spacer(modifier = Modifier.height(8.dp))
-        OutlinedTextField(
-            value = locationText,
-            onValueChange = { newValue ->
-                locationText = newValue
-                val parts = newValue.split(",").map { it.trim() }
-                if (parts.size == 2) {
-                    val latitude = parts[0].toDoubleOrNull()
-                    val longitude = parts[1].toDoubleOrNull()
-                    if (latitude != null && longitude != null) {
-                        meetingLocation = GeoPoint(latitude, longitude)
-                    }
+        Column(modifier = Modifier.fillMaxWidth()) {
+            TextField(
+                value = addressText,
+                onValueChange = { addressText = it },
+                label = { Text("Location") },
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Text,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(onDone = {
+                    // Perform action on Done button click
+                }),
+                modifier = Modifier.fillMaxWidth()
+            )
+            AutocompleteFragmentContainer(placeSelectionListener = object : PlaceSelectionListener {
+                override fun onPlaceSelected(place: Place) {
+                    // Obsługa wybranego miejsca
+                    addressText = place.address ?: ""
                 }
-            },
-            label = { Text("Location (lat, lon)") },
-            modifier = Modifier.fillMaxWidth()
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text("Address: $addressText", fontSize = 16.sp)
+
+                override fun onError(status: Status) {
+                    // Obsługa błędu
+                    Log.e(TAG, "Error selecting place: $status")
+                }
+            })
+        }
         Spacer(modifier = Modifier.height(30.dp))
         Box(
             modifier = Modifier
@@ -202,81 +186,74 @@ fun MainScreen(user: User, onScheduleMeeting: (String, String, LatLng) -> Unit) 
                 .height(200.dp)
                 .padding(16.dp)
         ) {
-            AndroidView(
-                factory = { context ->
-                    MapView(context).apply {
-                        val mapController = this.controller
-                        mapController.setZoom(9.0)
-                        mapController.setCenter(GeoPoint(52.4064, 16.9252)) // (Poznań, Poland)
+            AndroidView(factory = { context ->
+                MapView(context).apply {
+                    onCreate(null)
+                    getMapAsync { googleMap ->
+                        googleMap.moveCamera(
+                            CameraUpdateFactory.newLatLngZoom(
+                                LatLng(52.4064, 16.9252), // (Poznań, Poland)
+                                9.0f
+                            )
+                        )
 
-                        this.setMultiTouchControls(true)
-
-                        // Add a touch overlay to capture click events
-                        val touchOverlay = object : Overlay() {
-                            override fun onSingleTapConfirmed(
-                                e: MotionEvent,
-                                mapView: MapView
-                            ): Boolean {
-                                val geoPoint = mapView.projection.fromPixels(
-                                    e.x.toInt(),
-                                    e.y.toInt()
-                                ) as GeoPoint
-                                meetingLocation = geoPoint
-                                locationText = "${geoPoint.latitude}, ${geoPoint.longitude}"
-                                mapView.overlays.clear() // Clear previous markers
-                                val marker = Marker(mapView)
-                                marker.position = geoPoint
-                                marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                                mapView.overlays.add(marker)
-                                mapView.invalidate() // Redraw the map
-                                return true
-                            }
+                        googleMap.setOnMapClickListener { latLng ->
+                            meetingLocation = latLng
+                            addressText = getAddressFromLocation(context, latLng)
+                            googleMap.clear() // Usuń poprzednie znaczniki
+                            googleMap.addMarker(
+                                MarkerOptions()
+                                    .position(latLng)
+                                    .anchor(0.5f, 1.0f) // Ustawienie kotwicy
+                            )
                         }
-                        this.overlays.add(touchOverlay)
-                    }
-                },
-                update = { mapView ->
-                    mapView.overlays.clear() // Clear previous overlays
-                    meetingLocation?.let {
-                        val marker = Marker(mapView)
-                        marker.position = it
-                        marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-                        mapView.overlays.add(marker)
-                        mapView.controller.setCenter(it)
+                        meetingLocation?.let {
+                            googleMap.clear()
+                            googleMap.addMarker(
+                                MarkerOptions()
+                                    .position(it)
+                                    .anchor(0.5f, 1.0f)
+                            )
+                            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(it, 15.0f))
+                        }
                     }
                 }
-            )
+            })
         }
         Spacer(modifier = Modifier.height(60.dp))
         Button(onClick = {
-            meetingLocation?.let { location ->
-                if (meetingTitle.isNotEmpty() && meetingStartTime.isNotEmpty() && meetingEndTime.isNotEmpty()) {
-                    scope.launch {
-                        meetingRepository.insertMeeting(
-                            Meeting(
-                                title = meetingTitle,
-                                startTime = meetingStartTime,
-                                endTime = meetingEndTime,
-                                latitude = location.latitude,
-                                longitude = location.longitude,
-                                address = addressText
-                            )
-                        )
-                    }
-                    onScheduleMeeting(meetingTitle, "$meetingStartTime to $meetingEndTime", location.toLatLng())
-                }
-            }
+            onScheduleMeeting(user.id,meetingTitle, meetingStartTime, addressText)
         }) {
             Text("Schedule Meeting")
         }
     }
 }
 
-fun GeoPoint.toLatLng(): LatLng {
-    return LatLng(this.latitude, this.longitude)
-}
 
-fun LatLng.toGeoPoint(): GeoPoint {
-    return GeoPoint(this.latitude, this.longitude)
+@Composable
+fun AutocompleteFragmentContainer(
+    placeSelectionListener: PlaceSelectionListener
+) {
+    val context = LocalContext.current
+    DisposableEffect(Unit) {
+        val fragmentActivity = context as? FragmentActivity ?: return@DisposableEffect onDispose {  }
+        val fragmentWrapper = AutocompleteFragmentWrapper(context, placeSelectionListener)
+        fragmentActivity.supportFragmentManager.beginTransaction()
+            .replace(android.R.id.content, fragmentWrapper)
+            .commit()
+        onDispose {
+            fragmentWrapper.requireFragmentManager().beginTransaction()
+                .remove(fragmentWrapper)
+                .commitAllowingStateLoss()
+        }
+    }
 }
-
+fun getAddressFromLocation(context: Context, location: LatLng): String {
+    val geocoder = Geocoder(context, Locale.getDefault())
+    val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+    return if (addresses!!.isNotEmpty() && addresses[0] != null) {
+        addresses[0]?.getAddressLine(0) ?: "Unknown location"
+    } else {
+        "Unknown location"
+    }
+}

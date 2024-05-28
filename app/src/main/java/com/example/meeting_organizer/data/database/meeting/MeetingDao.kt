@@ -17,4 +17,7 @@ interface MeetingDao {
 
     @Query("SELECT * FROM meetings")
     suspend fun getAllMeetings(): List<Meeting>
+
+    @Query("SELECT * FROM meetings WHERE user_id = :userId")
+    suspend fun getMeetingsForUser(userId: Int): List<Meeting>
 }

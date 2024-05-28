@@ -6,9 +6,10 @@ import androidx.room.RoomDatabase
 import android.content.Context
 import com.example.meeting_organizer.data.database.meeting.MeetingDao
 import com.example.meeting_organizer.data.database.user.UserDao
+import com.example.meeting_organizer.data.model.Meeting
 import com.example.meeting_organizer.data.model.User
 
-@Database(entities = [User::class], version = 1, exportSchema = false)
+@Database(entities = [User::class, Meeting::class], version = 1, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun userDao(): UserDao

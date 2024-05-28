@@ -25,6 +25,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Meetingorganizer"
         tools:targetApi="31">
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="AIzaSyBU_ArU0rQsAiut48lGCwUFctgRXuJte70"/>
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
