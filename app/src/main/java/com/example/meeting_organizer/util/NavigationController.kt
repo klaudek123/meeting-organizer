@@ -1,8 +1,8 @@
 package com.example.meeting_organizer.util
 
 import android.annotation.SuppressLint
+import android.content.Context
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -11,6 +11,7 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.lifecycleScope
@@ -22,9 +23,10 @@ import com.example.meeting_organizer.data.database.user.UserRepository
 import com.example.meeting_organizer.data.model.Meeting
 import com.example.meeting_organizer.data.model.MeetingUserCrossRef
 import com.example.meeting_organizer.data.model.User
+import com.example.meeting_organizer.ui.login.ForgotPasswordScreen
 import com.example.meeting_organizer.ui.login.LoginScreen
-import com.example.meeting_organizer.ui.meetingScheduler.MeetingSchedulerScreen
 import com.example.meeting_organizer.ui.meetingList.MeetingListScreen
+import com.example.meeting_organizer.ui.meetingScheduler.MeetingSchedulerScreen
 import com.example.meeting_organizer.ui.register.RegisterScreen
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,6 +41,8 @@ fun NavigationController(
     activity: ComponentActivity,
     isDarkTheme: MutableState<Boolean>
 ) {
+    var loginError by rememberSaveable { mutableStateOf(false) }
+    var resetPasswordError by rememberSaveable { mutableStateOf(false) }
 
     val registerUser: (String, String, String, String, String) -> Unit = { firstName, lastName, email, phoneNumber, password ->
         activity.lifecycleScope.launch {
@@ -63,9 +67,10 @@ fun NavigationController(
                 withContext(Dispatchers.Main) {
                     navController.navigate("meetings/${user.id}")
                 }
+                loginError = false
             } else {
                 // Obsługa błędnych danych logowania
-                println("error")
+                loginError = true
             }
         }
     }
@@ -74,14 +79,16 @@ fun NavigationController(
         navController.navigate("scheduler/$userId")
     }
 
-    val scheduleMeeting: (Int, String, String, String, List<User>) -> Unit = {ownerId, title, time, location, selectedUsers ->
+    val scheduleMeeting: (Context, Int, String, String, String, String, List<User>) -> Unit = { context, ownerId, title, startTime, endTime, location, selectedUsers ->
         activity.lifecycleScope.launch {
+             val owner = userRepository.getUserById(ownerId)
+
             // Utwórz nowe spotkanie
             val meetingId = meetingRepository.insertMeeting(Meeting(
                 ownerId = ownerId,
                 title = title,
-                startTime = time,
-                endTime = time,
+                startTime = startTime,
+                endTime = endTime,
                 address = location,
                 participants = selectedUsers
             ))
@@ -91,6 +98,25 @@ fun NavigationController(
                 // Twórz wpisy do tabeli łączącej (wiele do wielu)
                 meetingRepository.insertMeetingUserCrossRef(MeetingUserCrossRef(meetingId.toInt(), user.id))
             }
+            // Wysyłanie e-maili
+            val emailSender = EmailSender()
+                val emailContent = """
+                Dear Friends,
+                
+                You have been invited to the following meeting:
+                
+                Title: $title
+                Start Time: $startTime
+                End Time: $endTime
+                Address: $location
+                Organized by: ${owner?.firstName} ${owner?.lastName}
+                
+                Best regards,
+                Meeting Organizer
+            """.trimIndent()
+
+                val recipientEmails = selectedUsers.filterNot { it.id == ownerId }.map { it.email }.toTypedArray()
+                emailSender.sendEmail(context, recipientEmails, "New Meeting Scheduled", emailContent)
 
             navController.navigate("meetings/$ownerId")
         }
@@ -104,8 +130,26 @@ fun NavigationController(
                 composable("login") {
                     LoginScreen(
                         onLoginClick = loginUser,
+                        onForgotPasswordClick = { navController.navigate("forgotPassword") },
                         onRegisterClick = { navController.navigate("register") },
-                        activity = activity
+                        loginError = loginError
+                    )
+                }
+                composable("forgotPassword") {
+                    ForgotPasswordScreen(
+                        onPasswordResetClick = { email, password ->
+                            activity.lifecycleScope.launch {
+                                val rowsUpdated = userRepository.updatePassword(email, password)
+                                if (rowsUpdated > 0) {
+                                    withContext(Dispatchers.Main) {
+                                        navController.navigate("login")
+                                    }
+                                } else {
+                                    resetPasswordError = true
+                                }
+                            }
+                        },
+                        resetPasswordError = resetPasswordError
                     )
                 }
                 composable("register") {
@@ -132,6 +176,7 @@ fun NavigationController(
                         )
                     } ?: run {
                         // Obsługa braku użytkownika w bazie danych
+
                     }
                 }
 
@@ -150,6 +195,7 @@ fun NavigationController(
                         MeetingListScreen(
                             it,
                             onButtonClick = goToScheduler,
+                            userRepository = userRepository,
                             meetingRepository = meetingRepository,
                             navController = navController,
                             isDarkTheme = isDarkTheme

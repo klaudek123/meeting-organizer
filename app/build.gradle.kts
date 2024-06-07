@@ -44,8 +44,11 @@ android {
         kotlinCompilerExtensionVersion = "1.5.1"
     }
     packaging {
+
         resources {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes.add("META-INF/NOTICE.md")
+            excludes.add("META-INF/LICENSE.md")
         }
     }
 }
@@ -59,7 +62,9 @@ dependencies {
     implementation ("com.google.android.libraries.places:places:2.5.0")
     val room_version = "2.6.1"
 
-
+//    implementation (libs.javax.mail)
+    implementation ("com.sun.mail:android-mail:1.6.6")
+    implementation("com.sun.mail:android-activation:1.6.6")
     implementation ("com.google.dagger:hilt-android:2.38.1")
     implementation("androidx.room:room-runtime:$room_version")
     annotationProcessor("androidx.room:room-compiler:$room_version")

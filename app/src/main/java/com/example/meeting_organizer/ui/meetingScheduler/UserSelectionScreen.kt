@@ -1,6 +1,5 @@
 package com.example.meeting_organizer.ui.meetingScheduler
 
-import android.text.style.BackgroundColorSpan
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -56,15 +56,17 @@ fun UserSelectionScreen(selectedItems: MutableList<User>, availableUsers: List<U
 
 @Composable
 fun CheckboxList(selectedItems: MutableList<User>, items: List<User>, onItemSelected: (User) -> Unit) {
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(6.dp) // Opcjonalne: Dodanie paddingu
+            .height(200.dp)
+            .padding(6.dp)
     ) {
-        items.forEach { user ->
+        items(items.size) { index ->
+            val user = items[index]
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Start, // Wyrównanie do lewej
+                horizontalArrangement = Arrangement.Start,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { onItemSelected(user) }
@@ -72,18 +74,14 @@ fun CheckboxList(selectedItems: MutableList<User>, items: List<User>, onItemSele
             ) {
                 Checkbox(
                     checked = selectedItems.contains(user),
-                    onCheckedChange = { isChecked ->
-                        if (isChecked) {
-                            selectedItems.add(user)
-                        } else {
-                            selectedItems.remove(user)
-                        }
+                    onCheckedChange = {
+                        onItemSelected(user)
                     }
                 )
-                Spacer(modifier = Modifier.width(4.dp)) // Opcjonalne: Odstęp między checkboxem a tekstem
+                Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "${user.firstName} ${user.lastName}",
-                    modifier = Modifier.weight(1f) // Zapełnienie dostępnej szerokości
+                    modifier = Modifier.weight(1f)
                 )
             }
         }

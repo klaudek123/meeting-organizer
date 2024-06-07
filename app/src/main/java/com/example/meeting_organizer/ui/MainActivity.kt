@@ -4,17 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.navigation.NavHostController
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.navigation.compose.rememberNavController
 import com.example.meeting_organizer.data.database.AppDatabase
 import com.example.meeting_organizer.data.database.meeting.MeetingRepository
 import com.example.meeting_organizer.data.database.user.UserRepository
 import com.example.meeting_organizer.ui.theme.MeetingOrganizerTheme
-import com.example.meeting_organizer.ui.theme.TopBar
-import androidx.navigation.compose.rememberNavController
 import com.example.meeting_organizer.util.NavigationController
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -37,7 +33,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val navController = rememberNavController()
 
-            val isDarkTheme = remember { mutableStateOf(false) }
+            val isDarkTheme = rememberSaveable { mutableStateOf(false) }
             MeetingOrganizerTheme(darkTheme = isDarkTheme.value) {
                 NavigationController(navController, userRepository, meetingRepository, this, isDarkTheme)
             }

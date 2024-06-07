@@ -1,4 +1,3 @@
-
 package com.example.meeting_organizer.ui.meetingScheduler
 
 import android.app.TimePickerDialog
@@ -6,9 +5,7 @@ import android.content.ContentValues.TAG
 import android.content.Context
 import android.location.Geocoder
 import android.util.Log
-import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,13 +15,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -65,7 +60,7 @@ import java.util.Locale
 @Composable
 fun MeetingSchedulerScreen(
     user: User,
-    onScheduleMeeting: (Int, String, String, String, List<User>) -> Unit,
+    onScheduleMeeting: (Context, Int, String, String, String, String, List<User>) -> Unit,
     userRepository: UserRepository,
     navController: NavController,
     isDarkTheme: MutableState<Boolean>
@@ -102,6 +97,7 @@ fun MeetingSchedulerScreen(
             }, currentHour, currentMinute, true).show()
         }, currentYear, currentMonth, currentDay).show()
     }
+
     TopBar(navController = navController, isDarkTheme = isDarkTheme) {
         Column(
             modifier = Modifier
@@ -111,8 +107,8 @@ fun MeetingSchedulerScreen(
             verticalArrangement = Arrangement.Top,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Text("Welcome, ${user.firstName}!", fontSize = 24.sp)
+            Spacer(modifier = Modifier.height(8.dp))
+            Text("Schedule meeting!", fontSize = 24.sp)
             Spacer(modifier = Modifier.height(24.dp))
             OutlinedTextField(
                 value = meetingTitle,
@@ -130,7 +126,8 @@ fun MeetingSchedulerScreen(
                     onValueChange = {},
                     label = { Text("Start Time") },
                     modifier = Modifier
-                        .width(200.dp),
+                        .weight(2f)
+                        .padding(end = 10.dp),
                     readOnly = true
                 )
                 Button(
@@ -138,7 +135,8 @@ fun MeetingSchedulerScreen(
                         showDateTimePicker(context) { dateTime ->
                             meetingStartTime = dateTime
                         }
-                    }
+                    },
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text("Calendar")
                 }
@@ -153,7 +151,8 @@ fun MeetingSchedulerScreen(
                     onValueChange = {},
                     label = { Text("End Time") },
                     modifier = Modifier
-                        .width(200.dp),
+                        .weight(2f)
+                        .padding(end = 10.dp),
                     readOnly = true
                 )
                 Button(
@@ -161,12 +160,13 @@ fun MeetingSchedulerScreen(
                         showDateTimePicker(context) { dateTime ->
                             meetingEndTime = dateTime
                         }
-                    }
+                    },
+                    modifier = Modifier.weight(1f)
                 ) {
                     Text("Calendar")
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Column(modifier = Modifier.fillMaxWidth()) {
                 TextField(
                     value = addressText,
@@ -183,7 +183,8 @@ fun MeetingSchedulerScreen(
                         .fillMaxWidth()
                         .background(Color.White)
                 )
-                AutocompleteFragmentContainer(placeSelectionListener = object : PlaceSelectionListener {
+                AutocompleteFragmentContainer(placeSelectionListener = object :
+                    PlaceSelectionListener {
                     override fun onPlaceSelected(place: Place) {
                         // Obsługa wybranego miejsca
                         addressText = place.address ?: ""
@@ -195,12 +196,12 @@ fun MeetingSchedulerScreen(
                     }
                 })
             }
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(16.dp))
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(200.dp)
-                    .padding(16.dp)
+                    .padding(10.dp)
             ) {
                 AndroidView(factory = { context ->
                     MapView(context).apply {
@@ -216,7 +217,7 @@ fun MeetingSchedulerScreen(
                             googleMap.setOnMapClickListener { latLng ->
                                 meetingLocation = latLng
                                 addressText = getAddressFromLocation(context, latLng)
-                                googleMap.clear() // Usuń poprzednie znaczniki
+                                googleMap.clear() // Usunięcie poprzedniego znacznika
                                 googleMap.addMarker(
                                     MarkerOptions()
                                         .position(latLng)
@@ -236,22 +237,33 @@ fun MeetingSchedulerScreen(
                     }
                 })
             }
-            Spacer(modifier = Modifier.height(30.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Lista wielokrotnego wyboru dla użytkowników
             Text("Select participants:")
-            UserSelectionScreen(selectedItems = selectedUsers, availableUsers = availableUsers, onItemSelected = { user ->
-                if (selectedUsers.contains(user)) {
-                    selectedUsers.remove(user)
-                } else {
-                    selectedUsers.add(user)
-                }
-            })
+            UserSelectionScreen(
+                selectedItems = selectedUsers,
+                availableUsers = availableUsers,
+                onItemSelected = { user ->
+                    if (selectedUsers.contains(user)) {
+                        selectedUsers.remove(user)
+                    } else {
+                        selectedUsers.add(user)
+                    }
+                })
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(onClick = {
-                onScheduleMeeting(user.id,meetingTitle, meetingStartTime, addressText, selectedUsers)
+                onScheduleMeeting(
+                    context,
+                    user.id,
+                    meetingTitle,
+                    meetingStartTime,
+                    meetingEndTime,
+                    addressText,
+                    selectedUsers
+                )
             }) {
                 Text("Schedule Meeting")
             }
@@ -266,7 +278,7 @@ fun AutocompleteFragmentContainer(
 ) {
     val context = LocalContext.current
     DisposableEffect(Unit) {
-        val fragmentActivity = context as? FragmentActivity ?: return@DisposableEffect onDispose {  }
+        val fragmentActivity = context as? FragmentActivity ?: return@DisposableEffect onDispose { }
         val fragmentWrapper = AutocompleteFragmentWrapper(context, placeSelectionListener)
         fragmentActivity.supportFragmentManager.beginTransaction()
             .replace(android.R.id.content, fragmentWrapper)
@@ -278,6 +290,7 @@ fun AutocompleteFragmentContainer(
         }
     }
 }
+
 fun getAddressFromLocation(context: Context, location: LatLng): String {
     val geocoder = Geocoder(context, Locale.getDefault())
     val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)

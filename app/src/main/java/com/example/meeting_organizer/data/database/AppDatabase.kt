@@ -13,7 +13,11 @@ import com.example.meeting_organizer.data.model.Meeting
 import com.example.meeting_organizer.data.model.MeetingUserCrossRef
 import com.example.meeting_organizer.data.model.User
 
-@Database(entities = [User::class, Meeting::class, MeetingUserCrossRef::class], version = 1, exportSchema = false)
+@Database(
+    entities = [User::class, Meeting::class, MeetingUserCrossRef::class],
+    version = 1,
+    exportSchema = false
+)
 @TypeConverters(ListConverter::class)
 abstract class AppDatabase : RoomDatabase() {
 
@@ -31,8 +35,8 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "app_database"
                 )
-                .fallbackToDestructiveMigration()
-                .build()
+                    .fallbackToDestructiveMigration()
+                    .build()
 
                 INSTANCE = instance
                 instance

@@ -44,4 +44,8 @@ class MeetingRepository(private val meetingDao: MeetingDao) {
         }
         return meetings
     }
+
+    suspend fun deleteMeeting(meeting: Meeting) {
+        meetingDao.deleteMeeting(meeting)
+    }
 }

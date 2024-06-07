@@ -32,7 +32,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.meeting_organizer.util.SessionManager
 import com.example.meeting_organizer.util.SessionManager.isLoggedIn
 import com.example.meeting_organizer.util.SessionManager.userId
 import kotlinx.coroutines.launch
@@ -111,6 +110,16 @@ fun DrawerContent(navController: NavController) {
         Text(text = "Navigation", modifier = Modifier.padding(8.dp), fontSize = 16.sp)
         Divider()
         Text(
+            text = "Meetings",
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp,
+            modifier = Modifier
+                .padding(8.dp)
+                .clickable {
+                    navController.navigate("meetings/${userId}")
+                }
+        )
+        Text(
             text = "Scheduler",
             fontWeight = FontWeight.Bold,
             fontSize = 20.sp,
@@ -118,16 +127,6 @@ fun DrawerContent(navController: NavController) {
                 .padding(8.dp)
                 .clickable {
                     navController.navigate("scheduler/${userId}")
-                }
-        )
-        Text(
-            text = "Meetings",
-            fontWeight = FontWeight.Bold,
-            fontSize = 20.sp,
-            modifier = Modifier
-                .padding(8.dp)
-                .clickable {
-                    navController.navigate("meetings/${SessionManager.userId}")
                 }
         )
     }

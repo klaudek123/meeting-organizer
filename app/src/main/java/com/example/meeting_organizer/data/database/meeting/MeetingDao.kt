@@ -1,6 +1,7 @@
 package com.example.meeting_organizer.data.database.meeting
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import com.example.meeting_organizer.data.model.Meeting
@@ -15,6 +16,9 @@ interface MeetingDao {
 
     @Insert
     suspend fun insertUser(user: User): Long
+
+    @Delete
+    suspend fun deleteMeeting(meeting: Meeting)
 
     @Insert
     suspend fun insertMeetingUserCrossRef(crossRef: MeetingUserCrossRef)
@@ -33,6 +37,7 @@ interface MeetingDao {
 
     @Query("SELECT * FROM meetings WHERE owner_id = :userId")
     suspend fun getMeetingsForUser(userId: Int): List<Meeting>
+
     @Query("SELECT * FROM users INNER JOIN meeting_user_cross_ref ON users.id = meeting_user_cross_ref.userId WHERE meeting_user_cross_ref.meetingId = :meetingId")
     suspend fun getParticipantsForMeeting(meetingId: Int): List<User>
 }

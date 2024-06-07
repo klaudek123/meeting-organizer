@@ -1,7 +1,13 @@
 package com.example.meeting_organizer.ui.register
 
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
@@ -11,7 +17,11 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -117,8 +127,8 @@ fun RegisterScreen(
                 !email.contains("@") || !email.contains(".") -> "Invalid email address"
                 phoneNumber.isBlank() -> "Phone Number is required"
                 !phoneNumber.all { it.isDigit() } -> "Phone Number must be numeric"
-                password.isBlank() -> "Password is required"
-                confirmPassword.isBlank() -> "Confirm Password is required"
+                password.isBlank() || password.length < 8 -> "Password must be at least 8 characters"
+                confirmPassword.isBlank() || confirmPassword.length < 8 -> "Confirm Password must be at least 8 characters"
                 password != confirmPassword -> "Passwords do not match"
                 else -> {
                     onRegisterClick(firstName, lastName, email, phoneNumber, password)
